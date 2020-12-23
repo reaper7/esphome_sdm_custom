@@ -1,0 +1,145 @@
+# Substitutions
+substitutions:
+  # Device Names
+  device_name: "powermetersdm"
+  friendly_name: "SDM"
+  # Icon
+  # https://materialdesignicons.com/
+  # https://www.esphome.app/docs/icons
+  main_icon: "mdi:gauge"
+
+# CORE CONFIG
+# https://esphome.io/components/esphome.html
+esphome:
+  name: "${device_name}"
+  platform: ESP8266
+  board: esp01_1m
+  includes:
+    - custom_components/sdm/SDM_Config_User.h
+    - custom_components/sdm/SDM.h
+    - custom_components/sdm/sdm_esphome.h
+
+# WIFI
+# https://esphome.io/components/wifi.html
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+  manual_ip:
+    static_ip: !secret powermetersdm
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "${friendly_name} Hotspot"
+    password: !secret wifi_password
+
+captive_portal:
+
+# Enable logging
+# https://esphome.io/components/logger.html
+logger:
+  # level: DEBUG
+  level: INFO
+  baud_rate: 0  #disable uart log
+  esp8266_store_log_strings_in_flash: false
+
+uart:
+  rx_pin: RX
+  tx_pin: TX
+  baud_rate: 9600
+  stop_bits: 1
+
+# Enable Home Assistant API
+# https://esphome.io/components/api.html
+api:
+
+# OTA
+# https://esphome.io/components/ota.html
+ota:
+
+# WEBSERVER
+# https://esphome.io/components/web_server.html
+web_server:
+
+time:
+  # https://esphome.io/components/time.html
+  - platform: homeassistant
+    id: hass_time
+    timezone: Europe/Warsaw
+
+binary_sensor:
+  # https://esphome.io/components/binary_sensor/status.html
+  - platform: status
+    name: "${friendly_name} Status"
+
+switch:
+  # https://esphome.io/components/switch/restart.html
+  - platform: restart
+    name: "${friendly_name} Restart"
+    icon: "mdi:restart-alert"
+
+# https://esphome.io/components/status_led
+status_led:
+  pin:
+    number: GPIO0
+    inverted: yes
+
+sensor:
+  # https://esphome.io/components/sensor/uptime.html
+  - platform: uptime
+    name: "${friendly_name} Uptime Sensor"
+ 
+# WIFI SIGNAL
+  # https://esphome.io/components/sensor/wifi_signal.html
+  - platform: wifi_signal
+    name: "${friendly_name} WiFi Status"
+    update_interval: 60s
+
+  # https://esphome.io/components/sensor/adc.html#adc-esp8266-vcc
+  - platform: adc
+    pin: VCC
+    name: "${friendly_name} VCC"
+
+  - platform: custom
+    lambda: |-
+      auto sdm_sensors = new SDMComponent();
+      App.register_component(sdm_sensors);
+      return {sdm_sensors->voltage_sensor, sdm_sensors->current_sensor, sdm_sensors->power_sensor, sdm_sensors->energy_sensor, sdm_sensors->frequency_sensor, sdm_sensors->power_factor_sensor};
+    sensors:
+      - name: "${friendly_name} Voltage"
+        unit_of_measurement: V
+        accuracy_decimals: 1
+        icon: "mdi:gauge"
+      - name: "${friendly_name} Current"
+        unit_of_measurement: A
+        accuracy_decimals: 3
+        icon: "mdi:gauge"
+      - name: "${friendly_name} Power"
+        unit_of_measurement: W
+        accuracy_decimals: 1
+        icon: "mdi:gauge"
+        id: power
+      - name: "${friendly_name} Energy"
+        unit_of_measurement: kWh
+        accuracy_decimals: 1
+        icon: "mdi:counter"
+      - name: "${friendly_name} Frequency"
+        unit_of_measurement: Hz
+        accuracy_decimals: 1
+        icon: "mdi:gauge"
+      - name: "${friendly_name} Power Factor"
+        accuracy_decimals: 2
+        icon: "mdi:gauge"
+
+  # https://esphome.io/components/sensor/total_daily_energy.html
+  - platform: total_daily_energy
+    name: "${friendly_name} Daily Energy"
+    icon: "mdi:counter"
+    power_id: power
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+    unit_of_measurement: kWh
+
