@@ -46,8 +46,8 @@ logger:
   esp8266_store_log_strings_in_flash: false
 
 uart:
-  rx_pin: RX
-  tx_pin: TX
+  rx_pin: GPIO3
+  tx_pin: GPIO1
   baud_rate: 9600
   stop_bits: 1
 
